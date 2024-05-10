@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Gallery</title>
+</head>
+
+<body>
+    <h1>Video Gallery</h1>
+    <ul>
+        <?php
+        // Get all files in the videos directory
+        $videoFiles = Storage::files('videos');
+
+        // Loop through each file
+        foreach ($videoFiles as $videoFile) {
+            // Extract filename from the path
+            $filename = pathinfo($videoFile, PATHINFO_FILENAME);
+
+            // Generate download link
+            echo '<li><a href="' . asset('videos/' . $filename) . '">' . $filename . '</a></li>';
+        }
+        ?>
+    </ul>
+</body>
+
+</html>

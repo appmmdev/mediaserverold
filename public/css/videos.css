@@ -1,0 +1,19 @@
+/* public/css/videos.css */
+
+.video-thumbnail {
+    position: relative;
+    overflow: hidden;
+    padding-top: 56.25%;
+    /* 16:9 aspect ratio */
+}
+
+.video-thumbnail video {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 150px;
+    /* Adjust the width as needed */
+    height: 150px;
+    /* Adjust the height as needed */
+    object-fit: cover;
+}

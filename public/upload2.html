@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Video</title>
+    <style>
+        .loading-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .loading-text {
+            color: #fff;
+            font-size: 20px;
+            margin-bottom: 10px;
+        }
+
+        #progressContainer {
+            position: relative;
+            width: 300px;
+            height: 20px;
+            margin-top: 10px;
+        }
+
+        #progressBar {
+            width: 100%;
+            height: 100%;
+            background-color: #ddd;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        #progressBar div {
+            height: 100%;
+            background-color: #4caf50;
+            transition: width 0.3s ease;
+        }
+
+        #progressText {
+            position: absolute;
+            top: 0;
+            left: 100%;
+            transform: translateX(10px);
+            color: #fff;
+            font-size: 16px;
+        }
+
+        #uploadSpeed {
+            position: absolute;
+            top: 0;
+            left: calc(100% + 60px);
+            transform: translateX(10px);
+            color: #fff;
+            font-size: 16px;
+        }
+
+        #cancelButton {
+            position: absolute;
+            top: 0;
+            left: calc(100% + 160px);
+            transform: translateX(10px);
+            color: #ee0707;
+            font-size: 16px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Upload Video</h1>
+    <form id="uploadForm" action="/api/v1/videos" method="post" enctype="multipart/form-data">
+        @csrf
+        <input type="file" name="video" id="videoInput" accept="video/mp4">
+        <button type="submit" id="uploadButton">Upload</button>
+    </form>
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="loading-text">Uploading...</div>
+        <div id="progressContainer">
+            <div id="progressBar">
+                <div></div>
+            </div>
+            <div id="progressText">0%</div>
+            <div id="uploadSpeed">0 KB/s</div>
+
+            <button type="button" id="cancelButton" style="display: none;">Cancel</button>
+
+        </div>
+    </div>
+
+    <div id="errorText" style="display: none; color: red;"></div>
+
+    <script>
+        var xhr;
+        var prevLoaded = 0;
+        var prevTime = new Date().getTime();
+
+        document.getElementById('uploadForm').addEventListener('submit', function (event) {
+            event.preventDefault();
+            var formData = new FormData(this);
+            xhr = new XMLHttpRequest();
+            var loadingOverlay = document.getElementById('loadingOverlay');
+            var errorText = document.getElementById('errorText');
+            var progressBar = document.getElementById('progressBar').querySelector('div');
+            var progressText = document.getElementById('progressText');
+            var uploadSpeed = document.getElementById('uploadSpeed');
+            var cancelButton = document.getElementById('cancelButton');
+
+            cancelButton.style.display = 'inline-block';
+
+            xhr.upload.onprogress = function (e) {
+                if (e.lengthComputable) {
+                    var currentTime = new Date().getTime();
+                    var timeDiff = (currentTime - prevTime) / 1000; // Time difference in seconds
+                    var loadedDiff = e.loaded - prevLoaded; // Uploaded bytes difference
+                    var speed = (loadedDiff / timeDiff) / 1024; // Upload speed in KB/s
+                    var uploadSpeedText;
+
+                    if (speed >= 1024) {
+                        // Convert speed to MB/s if greater than or equal to 1024 KB/s
+                        speed /= 1024;
+                        uploadSpeedText = speed.toFixed(2) + ' MB/s';
+                    } else {
+                        uploadSpeedText = speed.toFixed(2) + ' KB/s';
+                    }
+
+                    var percentage = (e.loaded / e.total) * 100;
+                    progressBar.style.width = percentage + '%';
+                    progressText.textContent = Math.round(percentage) + '%';
+                    uploadSpeed.textContent = uploadSpeedText;
+
+                    // Update previous loaded and time for next calculation
+                    prevLoaded = e.loaded;
+                    prevTime = currentTime;
+                }
+            };
+
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState === XMLHttpRequest.DONE) {
+                    loadingOverlay.style.display = 'none';
+                    if (xhr.status === 201) {
+                        // Success
+                        errorText.style.display = 'none';
+                        alert('Video uploaded successfully');
+                    } else {
+                        // Error
+                        errorText.textContent = 'Error uploading video. Please try again.';
+                        errorText.style.display = 'block';
+                    }
+                }
+            };
+
+            xhr.open('POST', '/api/v1/videos', true);
+            xhr.setRequestHeader('X-CSRF-TOKEN', document.querySelector('meta[name="csrf-token"]').getAttribute('content'));
+            loadingOverlay.style.display = 'flex';
+            xhr.send(formData);
+        });
+
+        document.getElementById('cancelButton').addEventListener('click', function () {
+            xhr.abort();
+            document.getElementById('loadingOverlay').style.display = 'none';
+            document.getElementById('cancelButton').style.display = 'none';
+        });
+    </script>
+
+    <!-- Include the CSRF token -->
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+</body>
+
+</html>
